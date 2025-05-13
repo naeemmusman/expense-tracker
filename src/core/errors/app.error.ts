@@ -21,10 +21,10 @@ export class AppError extends Error {
         Object.setPrototypeOf(this, new.target.prototype); // restore prototype chain
         this.name = name ?? ErrorType.ApplicationError;
         this.statusCode = statusCode;
-        if (isOperational !==  undefined) {
+        if (isOperational !== undefined) {
             this.isOperational = isOperational
         }
-        this.validationErrors =validationErrors;
+        this.validationErrors = validationErrors;
 
         Error.captureStackTrace(this);
     }
