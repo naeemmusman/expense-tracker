@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
-import { Router } from 'express';
-import { Server } from './server';
 import { AppRoutes } from './routes';
+import { Server } from './server';
 
 (() => {
     dotenv.config();
@@ -9,12 +8,13 @@ import { AppRoutes } from './routes';
 })();
 
 function main(): void {
-    const { API_PORT = 3000, API_PREFIX, API_NAME } = process.env;
+    const { API_PORT = 3000, API_PREFIX, API_VERSION, DB_URI } = process.env;
     const server = new Server({
         port: Number(API_PORT),
         routes: AppRoutes.routes,
         apiPrefix: API_PREFIX || '/api',
-        apiVersion: API_NAME || 'v1',
+        apiVersion: API_VERSION || 'v1',
+        dbUri: DB_URI || 'mongodb://localhost:27017/mydb',
     });
 
     void server.start();

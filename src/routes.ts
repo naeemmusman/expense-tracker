@@ -1,4 +1,5 @@
-import { NextFunction, Request, Response, Router } from "express";
+import { Router } from "express";
+import { AuthRoutes } from "./api/auth/auth.routes";
 
 export class AppRoutes {
     static get routes(): Router {
@@ -7,6 +8,8 @@ export class AppRoutes {
         router.get("/", (_, res) => {
             res.status(200).json({ message: "Welcome to the API!" });
         });
+        router.use("/auth", AuthRoutes.routes);
+
         return router;
     }
 }

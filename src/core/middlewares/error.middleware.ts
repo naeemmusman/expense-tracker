@@ -4,18 +4,18 @@ import { AppError } from "../errors/app.error";
 import { ErrorType, HttpCode } from "../enums";
 
 export class ErrorMiddleware {
-    public static handleError = (err: unknown, _: Request, res: Response<IErrorResponse>, next: NextFunction): void  => {
+    public static handleError = (err: unknown, _: Request, res: Response<IErrorResponse>, next: NextFunction): void => {
         if (err instanceof AppError) {
-            const { name, message, stack, validationErrors  } = err;
+            const { name, message, stack, validationErrors } = err;
             const statusCode = err.statusCode || HttpCode.internalServerError;
             res.statusCode = statusCode;
             res.json({
                 name,
                 message,
-                stack : process.env.NODE_ENV === 'production' ? undefined : stack,
+                stack: process.env.NODE_ENV === 'production' ? undefined : stack,
                 validationErrors
             });
-        } else {  
+        } else {
             const statusCode = HttpCode.internalServerError;
             res.statusCode = statusCode;
             res.json({
@@ -23,6 +23,6 @@ export class ErrorMiddleware {
                 message: 'An internal server error occurred',
             });
         }
-        next();  
+        next();
     }
 };

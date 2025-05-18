@@ -1,16 +1,17 @@
-import express, { NextFunction, Request, Response, Router } from 'express';
-import { CustomMiddleware } from './core/middlewares/custom.middleware';
-import { CorsMiddleware, ErrorMiddleware } from './core/middlewares';
+import express, { Router } from 'express';
 import { Server as HttpServer, IncomingMessage, ServerResponse } from 'http';
+import { CorsMiddleware, ErrorMiddleware } from './core/middlewares';
+import { CustomMiddleware } from './core/middlewares/custom.middleware';
 import { swaggerUiSetup } from './swagger';
-import { AppError } from './core/errors/app.error';
+import { Database } from './config';
 
 interface IServerOptions {
     port: number;
     routes: Router;
     apiPrefix: string;
     apiVersion: string;
-};
+    dbUri: string;
+}
 
 export class Server {
     public readonly app = express();
@@ -19,12 +20,14 @@ export class Server {
     private readonly routes: Router;
     private readonly apiPrefix: string;
     private readonly apiVersion: string;
+    private dbUri: string;
 
     constructor(options: IServerOptions) {
         this.port = options.port;
         this.routes = options.routes;
         this.apiPrefix = options.apiPrefix;
         this.apiVersion = options.apiVersion;
+        this.dbUri = options.dbUri;
     }
 
     async start(): Promise<void> {
@@ -32,21 +35,20 @@ export class Server {
         this.app.use(express.json());
         this.app.use(express.urlencoded({ extended: true }));
 
-
         // Custom Middlewares
-        this.app.use(CustomMiddleware.logRequest);
-        // CORS Middleware
-        this.app.use(CorsMiddleware.enableCors);
+        this.app.use(CustomMiddleware.logRequest);          //Logs Middlewares
+        this.app.use(CorsMiddleware.enableCors);            // CORS Middleware
         this.app.use(this.apiPrefix, this.routes);
-        // Swagger Middleware
-        swaggerUiSetup(this.app);
+        swaggerUiSetup(this.app);                           // Swagger Middleware
+
         // this.app.all('*', (req: Request, _: Response, next: NextFunction): void => {
         //     next(AppError.notFound(`Route ${req.path} not found`));
         // });
 
-        // Error Handling Middleware
-        this.app.use(ErrorMiddleware.handleError);
 
+        this.app.use(ErrorMiddleware.handleError);           // Error Handling Middleware
+
+        await Database.getInstance().connect(this.dbUri as string);
         this.serverListener = this.app.listen(this.port, () => {
             console.log(`Server is running on port ${this.port}`);
             console.log(`API is available at ${this.apiPrefix}/${this.apiVersion}`);
