@@ -1,8 +1,9 @@
 import swaggerJsDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
+import { forgetPasswordSchema, resetPasswordSchema } from './api/auth/schemas.ts/forgot-password.schema';
 import { signInResponseSchema, signInSchema } from './api/auth/schemas.ts/signin.schema';
-import { sign } from 'crypto';
-import { signupSchema } from './api/auth/schemas.ts/signup.schema';
+import { signUpResponseSchema, signupSchema } from './api/auth/schemas.ts/signup.schema';
+import { profileSchema } from './api/auth/schemas.ts/profile.schema';
 
 const validationErrorSchema = {
     type: 'object',
@@ -46,13 +47,25 @@ const swaggerDefinition = {
         description: 'API documentation for the project.',
     },
     components: {
+        securitySchemes: {
+            bearerAuth: {
+                type: 'http',
+                scheme: 'bearer',
+                bearerFormat: 'JWT',
+                description: 'Enter JWT token e.g. Bearer <JWT_TOKEN>'
+            },
+        },
         schemas: {
             ValidationError: validationErrorSchema,
-            UserSignIn: signInSchema,
+            UserSignInRequest: signInSchema,
             UserSignInResponse: signInResponseSchema,
-            UserSignUp: signupSchema
+            UserSignUpRequest: signupSchema,
+            UserSignUpResponse: signUpResponseSchema,
+            UserProfileResponse:profileSchema,
+            ForgetPassword: forgetPasswordSchema,
+            ResetPassword: resetPasswordSchema,
         }
-    },
+    }
 };
 
 const options = {

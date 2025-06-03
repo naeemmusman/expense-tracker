@@ -1,5 +1,3 @@
-import e from "express";
-
 export const signInSchema = {
     type: 'object',
     required: ['email', 'password'],

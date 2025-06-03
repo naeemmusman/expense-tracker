@@ -1,5 +1,5 @@
-import mongoose, { Document, Schema } from "mongoose";
 import bcrypt from "bcrypt";
+import mongoose, { Document, Query, Schema } from "mongoose";
 import { Address, AddressSchema } from "./address";
 
 const SALT_ROUNDS = 10;
@@ -12,12 +12,34 @@ export interface UserDocument extends Document {
     phone: string;
     address: Address;
     password: string;
-    verificationCode: string | null;
+    verificationCode?: string;
     accountActivated: boolean;
     accountLocked: boolean;
     createdAt: Date;
     updatedAt: Date;
+    passwordReset?: PasswordReset;
 }
+
+export interface PasswordReset {
+    resetOTP: number;
+    expires: Date;
+}
+
+const passwordResetSchema = new Schema<PasswordReset>({
+    resetOTP: {
+        type: Number,
+        required: true,
+    },
+    expires: {
+        type: Date,
+        required: true,
+    },
+}, {
+    _id: false,
+    timestamps: true,
+    versionKey: false,
+});
+
 
 const userSchema = new Schema<UserDocument>({
     firstName: {
@@ -48,6 +70,7 @@ const userSchema = new Schema<UserDocument>({
     password: {
         type: String,
         required: true,
+        // select: false
     },
     verificationCode: {
         type: String,
@@ -61,9 +84,13 @@ const userSchema = new Schema<UserDocument>({
         type: Boolean,
         default: false,
     },
+    passwordReset: {
+        type: passwordResetSchema,
+        default: null,
+    },
 }, { timestamps: true });
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async (next) => {
     const user = this as any;
     if (!user.isModified('password')) {
         return next();
@@ -74,6 +101,21 @@ userSchema.pre('save', async function (next) {
         next();
     } catch (error) {
         next(error as Error);
+    }
+});
+
+userSchema.pre(/^findOneAndUpdate/, async function (this: Query<any, UserDocument>, next) {
+
+    const update = (this as any).getUpdate();
+    if (update.password) {
+        try {
+            const hashedPassword = await bcrypt.hash(update.password, SALT_ROUNDS);
+            update.password = hashedPassword;
+            (this as any).setUpdate(update);
+            next();
+        } catch (error) {
+            return next(error as Error);
+        }
     }
 });
 

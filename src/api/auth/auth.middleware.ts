@@ -1,10 +1,11 @@
 import bcrypt from "bcrypt";
-import Jwt, { JwtPayload } from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
+import Jwt, { JwtPayload } from "jsonwebtoken";
+import moment from "moment";
 import { ErrorType, HttpCode } from "../../core/enums";
+import { AppError } from "../../core/errors/app.error";
 import { UserModel } from "../../domain/models/user";
 import { SignUpDTO } from "./auth.validator";
-import { AppError } from "../../core/errors/app.error";
 
 export class AuthMiddleware {
 
@@ -44,15 +45,15 @@ export class AuthMiddleware {
                 return res.status(HttpCode.unauthorized).json(unauthResponse);
             }
             if (user.accountLocked) {
-                return res.status(HttpCode.forbidden).json({
+                return res.status(HttpCode.unauthorized).json({
                     message: 'Account is locked',
-                    error: ErrorType.Forbidden
+                    error: ErrorType.Unauthorized
                 });
             }
             if (!user.accountActivated) {
-                return res.status(HttpCode.forbidden).json({
+                return res.status(HttpCode.unauthorized).json({
                     message: 'Account is not activated',
-                    error: ErrorType.Forbidden
+                    error: ErrorType.Unauthorized
                 });
             }
             req.user = user.toObject();
@@ -84,6 +85,61 @@ export class AuthMiddleware {
             next();
         } catch (error) {
             return AppError.unauthorized('Invalid or expired token!');
+        }
+    }
+
+    static validateUserByEmail = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+        const { email } = req.body;
+        const unauthResponse = {
+            message: 'Invalid credentials provided',
+            error: ErrorType.Unauthorized
+        };
+
+        try {
+            const user = await UserModel.findOne({ email });
+            if (!user) {
+                return res.status(HttpCode.unauthorized).json(unauthResponse);
+            }
+            if (user.accountLocked) {
+                return res.status(HttpCode.unauthorized).json({
+                    message: 'Account is locked',
+                    error: ErrorType.Unauthorized
+                });
+            }
+            if (!user.accountActivated) {
+                return res.status(HttpCode.unauthorized).json({
+                    message: 'Account is not activated',
+                    error: ErrorType.Unauthorized
+                });
+            }
+
+            req.user = user.toObject();
+
+        } catch (error) {
+            console.error('Registration Check fail', error);
+            return res.status(HttpCode.internalServerError).json({
+                message: 'Internal server error',
+            });
+        }
+        next();
+    }
+
+
+    static validateResetPassword = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+
+        if (!req.user) {
+            return res.status(HttpCode.unauthorized).json({
+                message: 'Unauthorized',
+                error: ErrorType.Unauthorized
+            });
+        }
+
+        if (req.user.passwordReset) {
+            const isOTPExpired = moment(req.user.passwordReset.expires).isBefore(moment());
+            if (isOTPExpired) {
+                throw AppError.unauthorized('OTP expired');
+            }
+            next();
         }
     }
 }

@@ -1,4 +1,4 @@
-export const signupSchema = {
+export const profileSchema = {
     type: 'object',
     required: ['firstName', 'lastName', 'email', 'phone', 'password'],
     properties: {
@@ -9,11 +9,6 @@ export const signupSchema = {
         lastName: {
             type: 'string',
             example: 'Doe'
-        },
-        dateOfBirth: {
-            type: 'string',
-            format: 'date',
-            example: '1990-01-01'
         },
         email: {
             type: 'string',
@@ -48,30 +43,6 @@ export const signupSchema = {
                     example: 'B5 7AA'
                 }
             }
-        },
-        password: {
-            type: 'string',
-            example: 'password123'
         }
-    }
-};
-
-
-export const signUpResponseSchema = {
-    type: 'object',
-    properties: {
-        firstName: {
-            type: 'string',
-            example: 'John'
-        },
-        lastName: {
-            type: 'string',
-            example: 'Doe'
-        },
-        email: {
-            type: 'string',
-            format: 'email',
-            example: 'admin@example.com'
-        },
     }
 };

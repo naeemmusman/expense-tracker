@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import Joi from "joi";
-import { ErrorType, HttpCode } from "../enums";
 import { authHeaderSchema } from "../../api/auth/schemas.ts/auth-header.schema";
+import { ErrorType, HttpCode } from "../enums";
 import { AppError } from "../errors/app.error";
 
 export class ValidateMiddleware {
@@ -29,14 +29,12 @@ export class ValidateMiddleware {
         };
     };
 
-
     public static validateAuthHeader = (req: Request, res: Response, next: NextFunction): any => {
         const { error } = authHeaderSchema.validate(req.headers, { allowUnknown: true });
 
         if (error) {
-            throw AppError.badRequest(error.details[0].message);
+            throw AppError.unauthorized(error.details[0].message);
         }
         next();
     }
-
 }

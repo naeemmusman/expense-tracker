@@ -3,11 +3,10 @@ import { Router } from 'express';
 import { ValidateMiddleware } from '../../core/middlewares/validate.middleware';
 import { AuthController } from './auth.controller';
 import { AuthMiddleware } from './auth.middleware';
-import { SignInDTO, signInSchema, SignUpDTO, signUpSchema } from './auth.validator';
-import { authHeaderSchema } from './schemas.ts/auth-header.schema';
+import { ForgetPasswordDTO, forgetPasswordSchema, ResetPasswordDTO, resetPasswordSchema, SignInDTO, signInSchema, SignUpDTO, signUpSchema } from './auth.validator';
 
 export class AuthRoutes {
-    static get routes(): Router {
+    static get router(): Router {
         const router = Router();
 
         const authController = new AuthController();
@@ -20,21 +19,26 @@ export class AuthRoutes {
          *    - Authenication
          *   summary: User Sign in
          *   description: User Sign in
+         *   security: []
          *   requestBody:
          *    required: true
          *    content:
          *     application/json:
          *      schema:
-         *       $ref: '#/components/schemas/UserSignIn'
+         *       $ref: '#/components/schemas/UserSignInRequest'
          *   responses:
          *    200:
          *     description: User signed in successfully!
-         *     schema:
-         *      $ref: '#/components/schemas/UserSignInResponse'
+         *     content:
+         *      application/json:
+         *       schema:
+         *        $ref: '#/components/schemas/UserSignInResponse'
          *    400:
          *     description: Validation error !
-         *     schema:
-         *      $ref: '#/components/schemas/ValidationError'
+         *     content:
+         *      application/json:
+         *       schema:
+         *        $ref: '#/components/schemas/ValidationError'
          */
         router.post(
             '/signin',
@@ -51,19 +55,26 @@ export class AuthRoutes {
          *    - Authenication
          *   summary: User Sign up
          *   description: User Sign up
+         *   security: []
          *   requestBody:
          *    required: true
          *    content:
          *     application/json:
          *      schema:
-         *       $ref: '#/components/schemas/UserSignUp'
+         *       $ref: '#/components/schemas/UserSignUpRequest'
          *   responses:
-         *    200:
+         *    201:
          *     description: User signUp successful !
+         *     content:
+         *      application/json:
+         *       schema:
+         *        $ref: '#/components/schemas/UserSignUpResponse'
          *    400:
          *     description: Validation error
-         *     schema:
-         *      $ref: '#/components/schemas/ValidationError'
+         *     content:
+         *      application/json:
+         *       schema:
+         *        $ref: '#/components/schemas/ValidationError'
          * 
          */
         router.post(
@@ -81,15 +92,15 @@ export class AuthRoutes {
         *    - Authenication
         *   summary: Get signed-in user profile
         *   description: Get signed-in user profile
-        *   requestBody:
-        *    required: true
-        *    content:
-        *     application/json:
-        *      schema:
-        *       $ref: '#/components/schemas/UserSignUp'
+        *   security:
+        *       - bearerAuth: []
         *   responses:
         *    200:
         *     description: User loaded successful !
+        *     content:
+        *      application/json:
+        *       schema:
+        *        $ref: '#/components/schemas/UserProfileResponse'
         *    400:
         *     description: Validation error
         *     schema:
@@ -101,6 +112,72 @@ export class AuthRoutes {
             ValidateMiddleware.validateAuthHeader,
             AuthMiddleware.authenticateJwt,
             authController.getProfile);
+
+
+        /**
+        * @swagger
+        * /api/auth/forgot-password:
+        *  post:
+        *   tags:
+        *    - Authenication
+        *   summary: for forgot password
+        *   description: for forgot password
+        *   security: []
+        *   requestBody:
+        *    required: true
+        *    content:
+        *     application/json:
+        *      schema:
+        *       $ref: '#/components/schemas/ForgetPassword'
+        *   responses:
+        *    200:
+        *     description: click the URL !
+        *    400:
+        *     description: Validation error
+        *     content:
+        *      application/json:
+        *       schema:
+        *        $ref: '#/components/schemas/ValidationError'
+        * 
+        */
+        router.post(
+            '/forgot-password',
+            ValidateMiddleware.validate<ForgetPasswordDTO>(forgetPasswordSchema),
+            AuthMiddleware.validateUserByEmail,
+            authController.createPasswordReset);
+
+        /**
+        * @swagger
+        * /api/auth/forgot-password:
+        *  post:
+        *   tags:
+        *    - Authenication
+        *   summary: for forgot password
+        *   description: for forgot password
+        *   security: []
+        *   requestBody:
+        *    required: true
+        *    content:
+        *     application/json:
+        *      schema:
+        *       $ref: '#/components/schemas/ForgetPassword'
+        *   responses:
+        *    200:
+        *     description: click the URL !
+        *    400:
+        *     description: Validation error
+        *     content:
+        *      application/json:
+        *       schema:
+        *        $ref: '#/components/schemas/ValidationError'
+        * 
+        */
+        router.post(
+            '/reset-password',
+            ValidateMiddleware.validate<ResetPasswordDTO>(resetPasswordSchema),
+            AuthMiddleware.validateUserByEmail,
+            AuthMiddleware.validateResetPassword,
+            authController.resetPassword);
 
         return router;
     }

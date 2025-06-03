@@ -8,7 +8,7 @@ export class AppRoutes {
         router.get("/", (_, res) => {
             res.status(200).json({ message: "Welcome to the API!" });
         });
-        router.use("/auth", AuthRoutes.routes);
+        router.use("/auth", AuthRoutes.router);
 
         return router;
     }

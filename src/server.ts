@@ -17,14 +17,14 @@ export class Server {
     public readonly app = express();
     private serverListener?: HttpServer<typeof IncomingMessage, typeof ServerResponse>;
     private readonly port: number;
-    private readonly routes: Router;
+    private readonly router: Router;
     private readonly apiPrefix: string;
     private readonly apiVersion: string;
     private dbUri: string;
 
     constructor(options: IServerOptions) {
         this.port = options.port;
-        this.routes = options.routes;
+        this.router = options.routes;
         this.apiPrefix = options.apiPrefix;
         this.apiVersion = options.apiVersion;
         this.dbUri = options.dbUri;
@@ -38,14 +38,8 @@ export class Server {
         // Custom Middlewares
         this.app.use(CustomMiddleware.logRequest);          //Logs Middlewares
         this.app.use(CorsMiddleware.enableCors);            // CORS Middleware
-        this.app.use(this.apiPrefix, this.routes);
+        this.app.use(this.apiPrefix, this.router);
         swaggerUiSetup(this.app);                           // Swagger Middleware
-
-        // this.app.all('*', (req: Request, _: Response, next: NextFunction): void => {
-        //     next(AppError.notFound(`Route ${req.path} not found`));
-        // });
-
-
         this.app.use(ErrorMiddleware.handleError);           // Error Handling Middleware
 
         await Database.getInstance().connect(this.dbUri as string);

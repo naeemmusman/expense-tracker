@@ -1,4 +1,4 @@
-import { HttpCode, ErrorType } from "../enums";
+import { ErrorType, HttpCode } from "../enums";
 import { IValidationType } from "../types";
 
 interface IAppErrorArgs {
