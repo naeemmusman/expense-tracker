@@ -1,8 +1,8 @@
 import bcrypt from "bcrypt";
-import { NextFunction, Request, Response } from "express";
+import e, { NextFunction, Request, Response } from "express";
 import Jwt, { JwtPayload } from "jsonwebtoken";
 import moment from "moment";
-import { ErrorType, HttpCode } from "../../core/enums";
+import { ErrorType, HttpCode, NotificationType } from "../../core/enums";
 import { AppError } from "../../core/errors/app.error";
 import { UserModel } from "../../domain/models/user";
 import { SignUpDTO } from "./auth.validator";
@@ -30,31 +30,79 @@ export class AuthMiddleware {
 
     static validateSignIn = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
         const { email, password } = req.body;
+        const { FAILED_LOGINS_ATTEMPTS = 3 , ACCOUNT_LOCK_DURATION_HOURS = 3 } = process.env;
         const unauthResponse = {
             message: 'Invalid credentials provided',
-            error: ErrorType.Unauthorized
+            error: ErrorType.Unauthorized,
+            notification: NotificationType.error
         };
 
+        
         try {
-            const user = await UserModel.findOne({ email });
+            let user = await UserModel.findOne({ email }).select('+password');
             if (!user) {
+                // user can make multiple failed attempts using incorrect emails, 
                 return res.status(HttpCode.unauthorized).json(unauthResponse);
             }
-            const isPasswordValid = await bcrypt.compare(password, user.password);
-            if (!isPasswordValid) {
-                return res.status(HttpCode.unauthorized).json(unauthResponse);
-            }
-            if (user.accountLocked) {
-                return res.status(HttpCode.unauthorized).json({
-                    message: 'Account is locked',
-                    error: ErrorType.Unauthorized
-                });
-            }
+            const { _id, failedLogins } = user;
+
             if (!user.accountActivated) {
                 return res.status(HttpCode.unauthorized).json({
                     message: 'Account is not activated',
-                    error: ErrorType.Unauthorized
+                    error: ErrorType.Unauthorized,
+                    notification: NotificationType.error
                 });
+            }
+
+            // if account is or was locked
+            if (user.lockedUntil !== null) {
+                if (moment(user.lockedUntil).isBefore(moment()) ) {
+                    // account lockout period has passed, unlock user account.
+                    await UserModel.findByIdAndUpdate( _id, 
+                        {
+                            failedLogins: 0,
+                            lockedUntil: null
+                        },
+                        { new: true } 
+                    );
+
+                } else {
+                    return res.status(HttpCode.forbidden).json({
+                        message: 'Account is locked',
+                        error: ErrorType.Unauthorized,
+                        notification: NotificationType.critical
+                    });
+                }
+            }
+            
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                // TODO:    implement failed login attempt increament if attempts <= 3 then 
+                
+                const maxAllowedAttempts =  Number(FAILED_LOGINS_ATTEMPTS)
+
+                if (failedLogins <= maxAllowedAttempts ) {
+                    // if failedLogins = 3 means this is 4th failed attempt. in this scenioro we locked the account.  
+                    const toUpdate = failedLogins === maxAllowedAttempts ?  
+                                        { 
+                                            $set: {
+                                                lockedUntil:  moment().add(ACCOUNT_LOCK_DURATION_HOURS, 'hour').toDate() 
+                                            }
+                                        }:
+                                        { 
+                                            $inc: { failedLogins: 1 }
+                                        } ; 
+                
+                    if (failedLogins === maxAllowedAttempts) {
+                        unauthResponse.message =  'Invalid credentials provided , your account is locked now !';
+                        unauthResponse.notification = NotificationType.critical;
+                    } else if (failedLogins === 2) {
+                        unauthResponse.message = 'Too many failed attempts, any futher attempts will result in account being locked.';
+                    }
+
+                    await UserModel.findByIdAndUpdate( _id, toUpdate, { new: true } );
+                    return res.status(HttpCode.unauthorized).json(unauthResponse);
+                }
             }
             req.user = user.toObject();
 
@@ -100,7 +148,7 @@ export class AuthMiddleware {
             if (!user) {
                 return res.status(HttpCode.unauthorized).json(unauthResponse);
             }
-            if (user.accountLocked) {
+            if (user.lockedUntil !== null) {
                 return res.status(HttpCode.unauthorized).json({
                     message: 'Account is locked',
                     error: ErrorType.Unauthorized

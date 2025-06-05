@@ -12,9 +12,10 @@ export interface UserDocument extends Document {
     phone: string;
     address: Address;
     password: string;
+    failedLogins: number;
+    lockedUntil: Date | null;
     verificationCode?: string;
     accountActivated: boolean;
-    accountLocked: boolean;
     createdAt: Date;
     updatedAt: Date;
     passwordReset?: PasswordReset;
@@ -70,17 +71,21 @@ const userSchema = new Schema<UserDocument>({
     password: {
         type: String,
         required: true,
-        // select: false
+        select: false
+    },
+    failedLogins:{
+        type: Number,
+        default: 0
+    },
+    lockedUntil:{
+        type: Date,
+        default: null
     },
     verificationCode: {
         type: String,
         default: null,
     },
     accountActivated: {
-        type: Boolean,
-        default: false,
-    },
-    accountLocked: {
         type: Boolean,
         default: false,
     },
@@ -118,6 +123,5 @@ userSchema.pre(/^findOneAndUpdate/, async function (this: Query<any, UserDocumen
         }
     }
 });
-
 
 export const UserModel = mongoose.model<UserDocument>('User', userSchema);

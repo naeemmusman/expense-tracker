@@ -20,6 +20,10 @@ const validationErrorSchema = {
             type: 'string',
             example: 'Bad Request',
         },
+        notification:{
+            type: 'string',
+            example: 'info',
+        },
         validationErrors: {
             type: 'array',
             items: {

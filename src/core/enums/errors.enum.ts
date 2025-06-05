@@ -48,3 +48,11 @@ export enum ErrorType {
     Locked = "LockedError",
     FailedDependency = "FailedDependencyError",
 };
+
+export enum NotificationType{
+    info = 'info',
+    success = 'success',
+    warning = 'warning',
+    error = 'error',
+    critical = 'critical'
+};
